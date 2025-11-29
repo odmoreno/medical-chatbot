@@ -54,11 +54,20 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
+        
       - name: Run Docker Image to serve users
         run: |
-         docker run -d -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" -e \
-         AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" -e \
-         AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" -e \
-         PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" -e \
-         GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" -p 8080:8080 "${{ steps.login-ecr.outputs.registry }}"/"${{ secrets.ECR_REPO }}":latest
+          # 1. Detener y borrar el contenedor viejo (si existe) para liberar el puerto
+          docker stop medical-chatbot || true
+          docker rm medical-chatbot || true
+          
+          # 2. Correr el nuevo contenedor con un nombre fijo
+          docker run -d \
+          --name medical-chatbot \
+          -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+          -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
+          -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" \
+          -e GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" \
+          -p 8080:8080 \
+          "${{ steps.login-ecr.outputs.registry }}"/"${{ secrets.ECR_REPO }}":latest
